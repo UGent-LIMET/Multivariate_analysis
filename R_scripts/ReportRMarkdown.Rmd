@@ -1,0 +1,435 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+always_allow_html: true
+---
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r echo=FALSE}
+setwd(PATH)
+library(knitr)
+
+Rmarkdown <- paste(PATH, "/R_scripts/ReportRMarkdown.R", sep = "")
+read_chunk(Rmarkdown)
+knitr::opts_chunk$set(echo = TRUE) 
+```
+
+```{r, cache= FALSE, results="hide", include=FALSE}
+<<NAAM>>
+```
+
+```{r, echo=FALSE}
+setwd(PATH)
+library(knitr)
+
+Configuration <- "Configuration.R"
+Configuration <- file.path(path_data_in, Configuration)
+read_chunk(Configuration)
+knitr::opts_chunk$set(echo = TRUE) 
+```
+
+```{r, cache= FALSE, results="hide", include=FALSE}
+<<statistics>>
+ <<settings>>
+```
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r out.width = "100%", fig.align="center"}
+  setwd(PATH)
+  library(EBImage)
+
+  logo <- "Logo.png"
+  logo <- file.path(PATH, 'Data/Reports/Template/Logo.png')
+  LOGO <- readImage(logo)
+  display(LOGO)
+```
+
+```{r out.width = "100%", fig.align="center"}
+  setwd(PATH)
+  library(EBImage)
+
+  Title <- "PART2.png"
+  Title <- file.path(PATH, 'Data/Reports/Template/PART2.png')
+  TITLE <- readImage(Title)
+  display(TITLE)
+
+```
+
+```{r}
+Date <- Sys.Date()
+
+cat(paste("This is the automatic report for the statistical analysis of experiment ", name_project, sep = ""))
+cat("\n\n")
+cat(paste("This report is made on ", Date, sep = ""))
+```
+
+\newpage
+
+**Materials and methods**
+
+The polarity that was used in this experiment is:
+```{r, cache= FALSE, echo=FALSE}
+cat(POLARITY)
+```
+
+The normalisation method that was performed is:
+```{r, cache= FALSE, echo=FALSE}
+cat(NORMALIZE_METHOD)
+```
+
+Retain all metabolites or remove specific metabolites before analysis: 
+```{r, cache= FALSE, echo=FALSE}
+cat(COEFICIENT_OF_VARIANCE)
+cat(QC_PREFILTER)
+```
+
+The cut-off value for correlation in S-plot is:
+```{r, cache= FALSE, echo=FALSE}
+cat(CUTOFF_CORRELATION)
+```
+
+To check the normality Skewkurt plots were created.
+
+Skewness-kurtosis plots indicate the range of skewness and kurtosis values a distribution can fit. Skewness is a measure of symmetry, or more precisely, the lack of symmetry and kurtosis is a measure of whether the data are heavy-tailed or light-tailed relative to a normal distribution. (Ho et al.2015)
+
+
+The following methods were performed: 
+```{r, cache= FALSE, echo=FALSE}
+
+if(AMOUNT_OF_PROJECTIONS >= 1){
+  cat("Principal component analysis (PCA)")
+  cat("\n")
+  cat("PCA reduces the dimensionality of a data set while retaining as much as possible of the variation.")
+  cat("\n")
+  cat("(Westerhuis et al., 2010)")
+  cat("\n\n")
+}
+if(AMOUNT_OF_COMPARISONS >= 1){
+  cat("Orthogonal partial least squares discriminant analysis (OPLS-DA)")
+  cat("\n")
+  cat("OPLS-DA is suitable for diagnosing differences between two groups or systems.")
+  cat("\n")
+  cat("It will tell us which variables have the largest discriminatory power.")
+  cat("\n")
+  cat("(Nisbet et al. 2018)")
+  cat("\n\n") 
+  
+  cat("S plot")
+  cat("\n")
+  cat("This plot enables the extraction of statistically significant variables.")
+  cat("\n")
+  cat("It also enables the identification of shared/unique structures in the samples")
+  cat("\n")
+  cat("(Wiklund et al. 2008)")
+  cat("\n\n")  
+  
+  cat("Variable Importance in Projection (VIP) plot")
+  cat("\n")
+  cat("VIP plot visualizes the importance of each variable and is often used for variable selection.")
+  cat("\n")
+  cat("A variable with a VIP Score close to or greater than 1 can be considered important in given model.")
+  cat("\n")
+  cat("(Tugizimana  et al. 2016)")
+  cat("\n\n")
+  
+  cat("Loading plot with CI using bootstrap")
+  cat("\n")
+  cat("This plot shows the loadings with their confidence intervals.")
+  cat("\n")
+  cat("Bootstrap is used to calculate empirical CI's, regardless of the distribution (e.g. non-Gaussian).")
+  cat("\n")
+  cat("(K. 2012)")
+  cat("\n\n")
+  
+  cat("Heatmap")
+  cat("\n")
+  cat("A heatmap visualizes the relative abundance of ions detected in each sample with color intensity")
+  cat("\n")
+  cat("Data from the collums represent the samples and data from the rows represent the metabolites.")
+  cat("\n")
+  cat("Rows and collumns are reordered, making it possible to view patterns among groups of samples")
+  cat("\n")
+  cat("(Grace et al. 2016)")
+  cat("\n\n") 
+}
+if(AMOUNT_OF_MULTIPLE_COMPARISONS >= 1){
+  cat("Partial Least Squares Discriminant Analysis (PLS-DA)")
+  cat("\n")
+  cat("PLS-DA is performed in order to sharpen the separation between groups of observations")
+  cat("\n")
+  cat("This method helps to understand which variables carry the class separating information.")
+  cat("\n")
+  cat("(Westerhuis et al. 2010)")
+  cat("\n\n") 
+  
+  cat("Linear Models for microarray data (Limma)")
+  cat("\n")
+  cat("Limma is a package for differential expression analysis of data arising from microarray experiments")
+  cat("\n")
+  cat("(Smyth, 2005)")
+  cat("\n\n") 
+}
+
+```
+
+**Sample information**
+
+```{r echo = FALSE}
+
+setwd(PATH)
+
+INPUT <- INPUT_SAMPLES
+INPUT <- file.path(path_data_in, INPUT)
+sampleMetadata <- read.table(INPUT, header=TRUE, sep="\t")
+
+COLLUMN_NR_SAMPLENAMES <- 1
+COLLUMN_NR_LAST <- COLLUMN_NR_LAST_BEFORE_COMPARISONS + AMOUNT_OF_COMPARISONS + AMOUNT_OF_MULTIPLE_COMPARISONS 
+sampleMetadata[ , c(COLLUMN_NR_SAMPLENAMES:COLLUMN_NR_LAST)]
+```
+
+\newpage
+
+**Results from multivariate data-analysis**
+
+
+SKEWKURTPLOT BEFORE NORMALISATION-TRANSFORMATION-SCALING:
+```{r out.width = "65%", fig.align="center"} 
+
+setwd(PATH)
+plot <- paste(name_project, "_skewkurtplot_samples.png", sep="")
+plot <- file.path(path_data_out, plot)
+knitr::include_graphics(plot)
+
+```
+
+SKEWKURTPLOT AFTER NORMALISATION-TRANSFORMATION-SCALING:
+```{r comment=NA, out.width = "65%", fig.align="center"} 
+
+setwd(PATH)
+fig3 <- paste(name_project, "_skewkurtplot_samples_scaled_and_log-transformed.png", sep = "")
+fig3 <- file.path(path_data_out, fig3)
+knitr::include_graphics(fig3)
+
+```
+
+AMOUNT OF VARIABLES WITH NORMAL DISTRIBUTION:
+```{r,  fig.cap = "Normalities report samples"} 
+
+setwd(PATH)
+
+NormalitiesSample <- paste(name_project, "_Report_normalities.txt", sep="")
+NormalitiesSample <- file.path(path_data_out, NormalitiesSample)
+outputSample <- read.table(NormalitiesSample, sep="\t", skip = 2, nrows = 1,  fill = TRUE, header= FALSE)
+
+library(knitr)
+library(kableExtra)
+kable_input <- kable(outputSample)
+kable_styling(kable_input, latex_options= c("scale_down", "hold_position"))
+```
+
+```{r, fig.cap= "Normalities report samples after normalisation and transformation"}
+
+setwd(PATH)
+
+Normalities_after <- paste(name_project, "_Report_normalities.txt", sep = "")
+Normalities_after <- file.path(path_data_out, Normalities_after)
+outputAfter <- read.table(Normalities_after, sep="\t", skip=8, nrows = 1,  fill = TRUE)
+
+library(knitr)
+library(kableExtra)
+kable_input <- kable(outputAfter)
+kable_styling(kable_input, latex_options= c("scale_down", "hold_position"))
+```
+
+\newpage
+
+```{r comment=NA, echo=FALSE, warning=FALSE, out.width= '60%', fig.align= "center"}
+
+AMOUNT_OF_PCA <- AMOUNT_OF_PROJECTIONS      #amount of pairwise comparisons, =0 if none
+
+if(AMOUNT_OF_PCA >= 1){   
+  cat("PCA SCOREPLOTS")
+  cat("\n\n") 
+  
+  for(PCA in 1:AMOUNT_OF_PCA){
+  cat(paste("PCA scoreplot ", PCA, sep="")) 
+  setwd(PATH)
+  library(EBImage)
+  
+  try({
+  PCAscore <-  paste(name_project, "_PCA_scoreplot " , PCA, ".png", sep="")
+  PCAscore <- file.path(path_data_out, PCAscore)
+  PCAplot <- readImage(PCAscore)
+  display(PCAplot)
+  })
+  }
+}
+```
+
+\pagebreak
+
+```{r comment=NA, echo=FALSE, warning=FALSE, out.width= '70%'}
+
+if(AMOUNT_OF_COMPARISONS >= 1){
+  cat("ORTHOGONAL PARTIAL LEAST SQUARES DISCRIMINANT ANALYSIS (OPLS-DA)")
+  cat("\n\n")
+  cat("If a model could be created, discriminating metabolites were determined.")
+  cat("\n")
+  cat("If no OPLS-DA model could be created, this is depicted by the comment 'object is NULL'.")
+  cat("\n")
+  cat("In this case dimensionreduction has led to one dimension, therefore no plot could be made.")
+  
+  for(pairwise_comparison in 1:AMOUNT_OF_COMPARISONS){
+  
+  setwd(PATH)
+  library(EBImage)
+  
+  cat("\n\n")
+  cat("******************************************************************************")
+  cat("\n")
+  cat(paste("OPLS-DA COMPARISON "), pairwise_comparison, sep = "")
+  cat("\n")
+  cat("******************************************************************************")
+  cat("\n\n")
+  
+  try({
+  name_plot <- paste(name_project, "_OPLSDA pairwise comparison " , pairwise_comparison, "_bis.png", sep="")
+  name_plot <- file.path(path_data_out, name_plot)
+  x <- readImage(name_plot)
+  display(x)
+  })
+ 
+  cat("\n\n")
+  cat(paste("OPLSDA scores comparison", pairwise_comparison, sep=""))
+  cat("\n\n")
+  
+  try({
+  OPLS <-  paste(name_project, "_Report_OPLSDA_scores_comparison_" , pairwise_comparison, ".txt", sep="")
+  OPLS <- file.path(path_data_out, OPLS)
+  OPLSDA <- read.table(OPLS, header = TRUE)
+  print(OPLSDA)
+  })
+  
+  cat("\n\n")
+  cat(paste("VIP plot ", pairwise_comparison, sep = ""))
+  
+  try({
+  name_VIP <-  paste(name_project, "_OPLSDA VIP-plot Comparison " , pairwise_comparison, ".png", sep="")
+  name_VIP <- file.path(path_data_out, name_VIP)
+  VIP <- readImage(name_VIP)
+  display(VIP)
+  })
+  
+  cat("\n\n")
+  cat(paste("S plot ", pairwise_comparison, sep = ""))
+  
+  try({
+  name_Splot <-  paste(name_project, "_OPLSDA S-plot Comparison " , pairwise_comparison, ".png", sep="")
+  name_Splot <- file.path(path_data_out, name_Splot)
+  S <- readImage(name_Splot)
+  display(S)
+  })
+  
+  cat("\n\n")
+  cat(paste("Loading plot ", pairwise_comparison, sep= ""))
+  
+  try({
+  name_loadingplot <-  paste(name_project, "_OPLSDA loadingplot Comparison " , pairwise_comparison, ".png", sep="")
+  name_loadingplot <- file.path(path_data_out, name_loadingplot)
+  L <- readImage(name_loadingplot)
+  display(L)
+  })
+  
+  cat("\n\n")
+  cat(paste("HEATMAP ", pairwise_comparison, sep= ""))
+  
+  try({
+  name_heatmap <-  paste(name_project, "_OPLSDA Heatmap comparison ", pairwise_comparison, ".png", sep="")
+  name_heatmap <- file.path(path_data_out, name_heatmap)
+  H <- readImage(name_heatmap)
+  display(H)
+  })
+  
+  cat("\n\n")
+  cat(paste("Table selected metabolites ", pairwise_comparison, sep= ""))
+  cat("\n\n")
+  
+  try({
+  setwd(PATH) 
+  Selection <-  paste(name_project, "_Variables_after_selection_VIP1_CIno0_Corr_cutoff_comparison_" , pairwise_comparison, ".txt", sep="")
+  Selection <- file.path(path_data_out, Selection)
+  SEL <- read.table(Selection, header = TRUE, sep = "")
+  print(SEL[ , c(1:4, 20,21,23, 25:27)])
+  })
+  }
+}
+```
+
+\pagebreak
+
+```{r comment=NA, echo=FALSE, warning=FALSE, out.width='70%'}
+
+AMOUNT_OF_MULTICOMPARISONS <- AMOUNT_OF_MULTIPLE_COMPARISONS    #amount of pairwise comparisons, =0 if none
+
+if(AMOUNT_OF_MULTICOMPARISONS >= 1){   
+
+  for(multiple_comparison in 1:AMOUNT_OF_MULTICOMPARISONS){
+  
+  setwd(PATH)
+  library(EBImage)
+  cat("PARTIAL LEAST SQUARES DISCRIMINANT ANALYSIS (PLS-DA)")
+  cat("\n\n")
+  cat("If a model could be created, a scoreplot is presented.")
+  cat("\n")
+  cat("If no PLS-DA model could be created, this is depicted by the comment 'object is NULL'. ")
+  cat("\n")
+  cat("In this case dimensionreduction has led to one dimension, therefore no scoreplot could be made.")
+  cat("\n\n")
+  cat("******************************************************************************")
+  cat("\n")
+  cat(paste("PLSDA multiple comparison ", multiple_comparison, sep=""))
+  cat("\n")
+  cat("******************************************************************************") 
+  
+  try({
+  name_multi <-  paste(name_project, "_PLSDA multiple comparison " , multiple_comparison, "_bis.png", sep="")
+  name_multi <- file.path(path_data_out, name_multi)
+  Multi <- readImage(name_multi)
+  display(Multi)
+  })
+
+  try({
+  cat("\n\n")
+  cat(paste("PLS-DA scores for multiple comparison ", multiple_comparison, sep = "" ))
+  cat("\n\n")
+  multiscore <- paste(name_project, "_Report_PLSDA_scores_multiple_comparison_" , multiple_comparison, ".txt", sep="")
+  multiscore <- file.path(path_data_out, multiscore)
+  MULTI <- read.table(multiscore, header = TRUE)
+  print(MULTI)
+  }) 
+
+  try({
+  cat("\n\n")
+  cat(paste("Toptable multiple comparison ", multiple_comparison, sep = "" ))
+  cat("\n\n")
+  cat("Analysis with Limma (Linear Models for Microarray Data)")
+  cat("\n\n")
+  TOPTABLE <- paste(name_project, "_ToptableF_output_multiple_comparison" , multiple_comparison, ".txt", sep="")
+  TOPTABLE <- file.path(path_data_out, TOPTABLE)
+  outputMultiTable <- read.table(TOPTABLE, header=TRUE, sep="\t")
+  MultiTOP <- outputMultiTable[c(1:30), c(1:14)]
+  print(MultiTOP)
+  }) 
+  }
+}
+```
+
+
