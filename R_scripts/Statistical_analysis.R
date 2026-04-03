@@ -687,9 +687,7 @@ if(AMOUNT_OF_COMPARISONS >= 1){
       #write_dataframe_as_txt_file(oplsda_cum_score, name_df)
       
       #retain only vars that were not less than 2.2e-16 @opls-da 
-      retained_variables_oplsda <- attributes(opls_comp@vipVn) 
-      retained_variables_oplsda <- unlist(retained_variables_oplsda, use.names=FALSE)
-      #removed_variables_oplsda <- attributes(opls_comp@xZeroVarVi)
+      retained_variables_oplsda <- names(opls_comp@vipVn)
       samples_matrix_comp_no0 <- samples_matrix_comp_no0[ , retained_variables_oplsda] #colnames retain if in list
       
       
@@ -700,7 +698,7 @@ if(AMOUNT_OF_COMPARISONS >= 1){
       #t-test based on permutations: compare if model RMSEE differs significantly from 100 permuted RMSEEs
       normality_RMSEE <- shapiro.test(permutation_comp[,4]) #Test normality of the permuted RMSEEs: p < 0.05 --> yes
       #name_report_permutation <- paste(name_project,'_Report_OPLS_perm_tests_pairw_comp.txt', sep="")
-      if (normality_RMSEE[2] < 0.05){
+      if (normality_RMSEE[2] >= 0.05){
         #name_df <- paste('Permutation test for comparison ', pairwise_comparison, ".", sep="")
         #append_result_to_report(name_df, name_report_permutation)
         ttest_permutation_comp <- t.test(permutation_comp[,4],alternative="greater", 
@@ -712,7 +710,7 @@ if(AMOUNT_OF_COMPARISONS >= 1){
         oplsda_cum_score$permutation_p_value <- ttest_permutation_comp$p.value
       }
       
-      if (normality_RMSEE[2] >= 0.05){
+      if (normality_RMSEE[2] < 0.05){
         #name_df <- paste('Permutation test for comparison ', pairwise_comparison, ".", sep="")
         #append_result_to_report(name_df, name_report_permutation)
         print_ttest <- "The permuted RMSEEs do not have a normal distribution, hence no t-test may be performed."
@@ -725,8 +723,7 @@ if(AMOUNT_OF_COMPARISONS >= 1){
       #oplsda score plot weight values
       PC1 <- opls_comp@scoreMN[ ,1] #PC1 is kept (pre=1)
       PC2 <- opls_comp@orthoScoreMN[ ,1] #PC2 is kept (ort =1)
-      score_weights_oplsda_comp <- cbind(PC1, PC2)
-      score_weights_oplsda_comp <- as.data.frame(score_weights_oplsda_comp)
+      score_weights_oplsda_comp <- data.frame(PC1, PC2)
       rownames(score_weights_oplsda_comp) <- samples_metadata_comp$SampleName
       name_df <- paste(name_project, '_OPLSDA_weights_pairwise_comparison_', pairwise_comparison, '.txt', sep="")
       write_matrix_as_txt_file(score_weights_oplsda_comp, name_df) 
@@ -760,7 +757,7 @@ if(AMOUNT_OF_COMPARISONS >= 1){
       output_comp <- output_comp[ ,1:(COLLUMN_NR_START_SAMPLES-1)]
 
       #keep only vm intensities in in samplenames of comparison + only only compoundIDs if in comparison (eg after filtering some removed) 
-      samplenames_w_X <- samplenames#paste0("X", samplenames)
+      samplenames_w_X <- paste0("X", samplenames)
       output_intensities <- variableMetadata_info[ ,samplenames_w_X] 
       output_intensities <- output_intensities[rownames(output_intensities) %in% variablenames, ]
       
@@ -880,63 +877,69 @@ if(AMOUNT_OF_COMPARISONS >= 1){
         return(all_loadings)
       }
       
-      #resampling
-      bootresults <- boot(data = df_loading, statistic = loadingboot, R=200,    
-                          select_predI=optimal_predI, select_orthoI=optimal_orthoI, select_crossval=max_crossval)
-      #min 200x resampling, else error too little bootstrap for CI calculation
-      #write_dataframe_as_txt_file(bootresults$t, 'bootresultsT.txt')
-      #write_dataframe_as_txt_file(bootresults$t0, 'bootresultsT0.txt')
-      
-      #Put CIs in dataframe
-      myCIsframe_comp <-as.data.frame(matrix(ncol=3,nrow=(length(samples_matrix_comp_no0)-0))) #-0 is info colums vb 'comp'
-      names(myCIsframe_comp)<-c("Center_CI","Lower_limit","Upper_limit")
-      
-      for(i in 1:length(samples_matrix_comp_no0)){
-        try({
-          #i <- 1
-          CI<-boot.ci(bootresults,conf=0.95,type="bca",index=i)  # 'adjusted bootstrap percentile' (BCA) method
-          myCIsframe_comp[i,1]<-CI$t0 #Center of CI
-          myCIsframe_comp[i,2]<-CI$bca[4] #Lower limit of CI
-          myCIsframe_comp[i,3]<-CI$bca[5] #Upper limit of CI
-        })
-      }
-      #write_dataframe_as_txt_file(myCIsframe_comp, "CIresults.txt") 
-      
-      #Loading plot OPLS-DA with 95% CI
-      OPLSDAloadingplot_comp <- plot_loading(myCIsframe_comp) 
-      #name_plot <- paste(name_project, "_OPLSDA loadingplot Comparison " , pairwise_comparison, ".pdf", sep="")
-      #pdf(name_plot, height=5,width=7)
-      #plot(OPLSDAloadingplot_comp)
-      #dev.off()
-      
-      png(paste(name_project, "_OPLSDA loadingplot Comparison " , pairwise_comparison, ".png", sep=""), width=7, height=5, units="in", res=150)  
-      plot(OPLSDAloadingplot_comp)
-      dev.off()
-      
-      # add loading scores to output file
-      Variableselection_comp$CI_center<-myCIsframe_comp$Center_CI
-      Variableselection_comp$CI_low<-myCIsframe_comp$Lower_limit
-      Variableselection_comp$CI_high<-myCIsframe_comp$Upper_limit
-      #Variableselection_comp$CI_0 <-(myCIsframe_comp[,2] <= 0 & myCIsframe_comp[,3] >= 0) #returns true if CI in 0
-      Variableselection_comp$CI_No_0 <-((myCIsframe_comp[,2] > 0 & myCIsframe_comp[,3] > 0) | (myCIsframe_comp[,2] < 0 & myCIsframe_comp[,3] < 0)) #returns true if CI NOT in 0, wanted!
-      Variableselection_comp$CI_No_0[is.na(Variableselection_comp$CI_No_0)] <- "NO_CI" #all values no CI was calculated NA -> 0, become boolean elsewise
-      
-      Variableselection_write <- cbind(output_comp, Variableselection_comp, output_intensities)
-      name_df <- paste(name_project, '_OPLSDA_Variables_before_selection_comparison_', pairwise_comparison, '.txt', sep="")
-      write_dataframe_as_txt_file(Variableselection_write, name_df) 
-      
+      # #resampling
+      # bootresults <- boot(data = df_loading, statistic = loadingboot, R=200,    
+      #                     select_predI=optimal_predI, select_orthoI=optimal_orthoI, select_crossval=max_crossval)
+      # #min 200x resampling, else error too little bootstrap for CI calculation
+      # #write_dataframe_as_txt_file(bootresults$t, 'bootresultsT.txt')
+      # #write_dataframe_as_txt_file(bootresults$t0, 'bootresultsT0.txt')
+      # 
+      # #Put CIs in dataframe
+      # myCIsframe_comp <-as.data.frame(matrix(ncol=3,nrow=(length(samples_matrix_comp_no0)-0))) #-0 is info colums vb 'comp'
+      # names(myCIsframe_comp)<-c("Center_CI","Lower_limit","Upper_limit")
+      # 
+      # for(i in 1:length(samples_matrix_comp_no0)){
+      #   try({
+      #     #i <- 1
+      #     CI<-boot.ci(bootresults,conf=0.95,type="perc",index=i)  # 'adjusted bootstrap percentile' (BCA) method
+      #     myCIsframe_comp[i,1]<-CI$t0 #Center of CI
+      #     myCIsframe_comp[i,2]<-CI$percent[4] #Lower limit of CI
+      #     myCIsframe_comp[i,3]<-CI$percent[5] #Upper limit of CI
+      #   })
+      # }
+      # #write_dataframe_as_txt_file(myCIsframe_comp, "CIresults.txt") 
+      # 
+      # #Loading plot OPLS-DA with 95% CI
+      # OPLSDAloadingplot_comp <- plot_loading(myCIsframe_comp) 
+      # #name_plot <- paste(name_project, "_OPLSDA loadingplot Comparison " , pairwise_comparison, ".pdf", sep="")
+      # #pdf(name_plot, height=5,width=7)
+      # #plot(OPLSDAloadingplot_comp)
+      # #dev.off()
+      # 
+      # png(paste(name_project, "_OPLSDA loadingplot Comparison " , pairwise_comparison, ".png", sep=""), width=7, height=5, units="in", res=150)  
+      # plot(OPLSDAloadingplot_comp)
+      # dev.off()
+      # 
+      # # add loading scores to output file
+      # Variableselection_comp$CI_center<-myCIsframe_comp$Center_CI
+      # Variableselection_comp$CI_low<-myCIsframe_comp$Lower_limit
+      # Variableselection_comp$CI_high<-myCIsframe_comp$Upper_limit
+      # #Variableselection_comp$CI_0 <-(myCIsframe_comp[,2] <= 0 & myCIsframe_comp[,3] >= 0) #returns true if CI in 0
+      # Variableselection_comp$CI_No_0 <-((myCIsframe_comp[,2] > 0 & myCIsframe_comp[,3] > 0) | (myCIsframe_comp[,2] < 0 & myCIsframe_comp[,3] < 0)) #returns true if CI NOT in 0, wanted!
+      # Variableselection_comp$CI_No_0[is.na(Variableselection_comp$CI_No_0)] <- "NO_CI" #all values no CI was calculated NA -> 0, become boolean elsewise
+      # 
+      # Variableselection_write <- cbind(output_comp, Variableselection_comp, output_intensities)
+      # name_df <- paste(name_project, '_OPLSDA_Variables_before_selection_comparison_', pairwise_comparison, '.txt', sep="")
+      # write_dataframe_as_txt_file(Variableselection_write, name_df) 
+      # 
       # selection based on vip, CI and corr(x)
       Variableselection_comp <- cbind(output_comp, Variableselection_comp, output_intensities) #one time merge for selection. above 3times only for write away to file and replace if extra info
       Variables_VIP_1_comp<-Variableselection_comp[Variableselection_comp$VIP_1==1,]
       Variables_corr_cutoff_comp<-Variableselection_comp[Variableselection_comp$Corr_cutoff==TRUE,] 
-      Variables_CIno0_comp<-Variableselection_comp[Variableselection_comp$CI_No_0==TRUE,] #Select only variables with CI that do not contain 0
-      Variables_VIP_1_CIno0_corr_cutoff_comp<-Variableselection_comp[Variableselection_comp$CI_No_0==TRUE & Variableselection_comp$Corr_cutoff==TRUE & Variableselection_comp$VIP_1==1,]
+      # Variables_CIno0_comp<-Variableselection_comp[Variableselection_comp$CI_No_0==TRUE,] #Select only variables with CI that do not contain 0
+      # Variables_VIP_1_CIno0_corr_cutoff_comp<-Variableselection_comp[Variableselection_comp$CI_No_0==TRUE & Variableselection_comp$Corr_cutoff==TRUE & Variableselection_comp$VIP_1==1,]
       
-      name_df <- paste(name_project, '_OPLSDA_Variables_after_selection_VIP1_CIno0_Corr_cutoff_comparison_', pairwise_comparison, '.txt', sep="")
-      try(write_dataframe_as_txt_file(Variables_VIP_1_CIno0_corr_cutoff_comp, name_df)) #error if empty df: nrow(dataframe) >= 1 is not TRUE
+      # name_df <- paste(name_project, '_OPLSDA_Variables_after_selection_VIP1_CIno0_Corr_cutoff_comparison_', pairwise_comparison, '.txt', sep="")
+      # try(write_dataframe_as_txt_file(Variables_VIP_1_CIno0_corr_cutoff_comp, name_df)) #error if empty df: nrow(dataframe) >= 1 is not TRUE
+      
+      Variables_VIP_1_corr_cutoff_comp<-Variableselection_comp[Variableselection_comp$Corr_cutoff==TRUE & Variableselection_comp$VIP_1==1,]
+      name_df <- paste(name_project, '_OPLSDA_Variables_after_selection_VIP1_Corr_cutoff_comparison_', pairwise_comparison, '.txt', sep="")
+      try(write_dataframe_as_txt_file(Variables_VIP_1_corr_cutoff_comp, name_df)) #error if empty df: nrow(dataframe) >= 1 is not TRUE
+      
       
       total_amount_of_variables <- nrow(Variableselection_comp)
-      amount_variables_after_selection <- nrow(Variables_VIP_1_CIno0_corr_cutoff_comp)
+      # amount_variables_after_selection <- nrow(Variables_VIP_1_CIno0_corr_cutoff_comp)
+      amount_variables_after_selection <- nrow(Variables_VIP_1_corr_cutoff_comp)
       report_variables_after_selection <- paste("There are " , amount_variables_after_selection, " significant variables retrieved from the total of " , total_amount_of_variables , " variables obtained in the OPLSDA model of comparison ", pairwise_comparison, ".", sep="")
       name_report_variables <- paste(name_project,'_OPLSDA_nr_variables_after_selection_pairwise_comparisons.txt', sep="")
       append_result_to_report(report_variables_after_selection, name_report_variables) 
